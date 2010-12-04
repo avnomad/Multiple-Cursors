@@ -28,7 +28,7 @@ struct Point
 		:x(X),y(Y){}
 }; // end struct Point
 
-map<DWORD,Point> cursorPositions;
+map<LPARAM,Point> cursorPositions;
 
 LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL);
 
@@ -49,15 +49,6 @@ int main()
 	mainClass.lpszClassName = TEXT("mainClass");
 
 	RegisterClass(&mainClass);
-
-	// temp
-	//Point p;
-	//p.x = 100;
-	//p.y = 100;
-	//cursorPositions[0] = p;
-	//p.x = 200;
-	//p.y = 200;
-	//cursorPositions[1] = p;
 
 	// create, show, update window
 	HWND mainWindow = CreateWindow(TEXT("mainClass"),TEXT("Multiple Cursors"),WS_OVERLAPPEDWINDOW,
@@ -98,34 +89,20 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 
 	switch(message)
 	{
-	case WM_INPUT_DEVICE_CHANGE:	// maybe use handles instead of ids?
+	case WM_INPUT_DEVICE_CHANGE:
 		if(argW == GIDC_ARRIVAL)
 		{
-			size = sizeof(deviceInfo);
-			GetRawInputDeviceInfo((HANDLE)argL,RIDI_DEVICEINFO,&deviceInfo,&size);
-			if(deviceInfo.dwType == RIM_TYPEMOUSE)
+			if(cursorPositions.find(argL) == cursorPositions.end())	// if not already in
 			{
-				if(cursorPositions.find(deviceInfo.mouse.dwId) == cursorPositions.end())	// if not already in
-				{
-					GetClientRect(window,&r);
-					cursorPositions[deviceInfo.mouse.dwId] = Point(r.right/2,r.bottom/2);
-				} // end if
-				clog << "mouse connected with ID = " << deviceInfo.mouse.dwId << endl;
-			}
-			else
-				clog << "connected device is not a mouse!" << endl;
+				GetClientRect(window,&r);
+				cursorPositions[argL] = Point(r.right/2,r.bottom/2);
+			} // end if
+			clog << "mouse connected with HANDLE = " << argL << endl;
 		} // end if
 		if(argW == GIDC_REMOVAL)
 		{
-			size = sizeof(deviceInfo);
-			GetRawInputDeviceInfo((HANDLE)argL,RIDI_DEVICEINFO,&deviceInfo,&size);
-			if(deviceInfo.dwType == RIM_TYPEMOUSE)
-			{
-				cursorPositions.erase(deviceInfo.mouse.dwId);	// erases it if it exists.
-				clog << "mouse disconnected with ID = " << deviceInfo.mouse.dwId << endl;
-			}
-			else
-				clog << "disconnected device is not a mouse!" << endl;
+			cursorPositions.erase(argL);	// erases it if it exists.
+			clog << "mouse disconnected with HANDLE = " << argL << endl;
 		} // end if
 		InvalidateRect(window,NULL,TRUE);
 		return 0;
@@ -134,43 +111,36 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 		data = new char[size];
 		GetRawInputData((HRAWINPUT)argL,RID_INPUT,data,&size,sizeof(RAWINPUTHEADER));
 		input = (RAWINPUT*)data;	// ...
-		if(input->header.dwType == RIM_TYPEMOUSE)
+		point = &cursorPositions[(LPARAM)input->header.hDevice];
+		if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_ABSOLUTE)
 		{
-			size = sizeof(deviceInfo);
-			GetRawInputDeviceInfo(input->header.hDevice,RIDI_DEVICEINFO,&deviceInfo,&size);
-			point = &cursorPositions[deviceInfo.mouse.dwId];
-			if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_ABSOLUTE)
-			{
-				point->x = input->data.mouse.lLastX;
-				point->y = input->data.mouse.lLastY;
-			} // end if
-			if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_RELATIVE)
-			{
-				point->x += input->data.mouse.lLastX;
-				point->y += input->data.mouse.lLastY;
-			} // end if
-			GetClientRect(window,&r);
-			if(point->x < r.left)
-				point->x = r.left;
-			if(point->x > r.right)
-				point->x = r.right;
-			if(point->y < r.top)
-				point->y = r.top;
-			if(point->y > r.bottom)
-				point->y = r.bottom;
-			clog << "input from mouse with ID = " << deviceInfo.mouse.dwId << " position = " 
-				<< input->data.mouse.lLastX << ',' << input->data.mouse.lLastY << " flags = 0x" 
-				<< std::hex << input->data.mouse.usFlags << std::dec << endl;
-		}
-		else
-			clog << "input is not comming from a mouse!" << endl;
+			point->x = input->data.mouse.lLastX;
+			point->y = input->data.mouse.lLastY;
+		} // end if
+		if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_RELATIVE)
+		{
+			point->x += input->data.mouse.lLastX;
+			point->y += input->data.mouse.lLastY;
+		} // end if
+		GetClientRect(window,&r);
+		if(point->x < r.left)
+			point->x = r.left;
+		if(point->x > r.right)
+			point->x = r.right;
+		if(point->y < r.top)
+			point->y = r.top;
+		if(point->y > r.bottom)
+			point->y = r.bottom;
+		//clog << "input from mouse with HANDLE = " << (LPARAM)input->header.hDevice << " position = " 
+		//	<< input->data.mouse.lLastX << ',' << input->data.mouse.lLastY << " flags = 0x" 
+		//	<< std::hex << input->data.mouse.usFlags << std::dec << endl;
 		delete[] data;
 		InvalidateRect(window,NULL,TRUE);
 		return 0;
 	case WM_PAINT:
 		{
 		dc = BeginPaint(window,&ps);
-		SelectObject(dc,CreatePen(PS_SOLID,3,RGB(255,192,0)));	// gold pen
+		SelectObject(dc,CreatePen(PS_SOLID,1,RGB(255,192,0)));	// gold pen
 
 		auto begin = cursorPositions.begin();
 		auto end = cursorPositions.end();
@@ -184,7 +154,7 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 				LineTo(dc,begin2->second.x,begin2->second.y);
 				begin2++;
 			} // end while
-			Rectangle(dc,begin->second.x,begin->second.y,begin->second.x+20,begin->second.y+20);
+			//Rectangle(dc,begin->second.x,begin->second.y,begin->second.x+20,begin->second.y+20);
 			++begin;
 		} // end while
 
