@@ -60,7 +60,7 @@ int main()
 	RAWINPUTDEVICE devices[1];
 	devices[0].usUsagePage = 1;
 	devices[0].usUsage = 2;
-	devices[0].dwFlags = RIDEV_DEVNOTIFY|RIDEV_INPUTSINK;
+	devices[0].dwFlags = RIDEV_DEVNOTIFY/*|RIDEV_INPUTSINK*/;
 	devices[0].hwndTarget = mainWindow;
 	RegisterRawInputDevices(devices,length(devices),sizeof(devices[0]));
 
@@ -89,6 +89,12 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 
 	switch(message)
 	{
+	case WM_SETFOCUS:
+		ShowCursor(FALSE);
+		return 0;
+	case WM_KILLFOCUS:
+		ShowCursor(TRUE);
+		return 0;
 	case WM_INPUT_DEVICE_CHANGE:
 		if(argW == GIDC_ARRIVAL)
 		{
@@ -154,7 +160,7 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 				LineTo(dc,begin2->second.x,begin2->second.y);
 				begin2++;
 			} // end while
-			//Rectangle(dc,begin->second.x,begin->second.y,begin->second.x+20,begin->second.y+20);
+			//Ellipse(dc,begin->second.x,begin->second.y,begin->second.x+20,begin->second.y+20);
 			++begin;
 		} // end while
 
