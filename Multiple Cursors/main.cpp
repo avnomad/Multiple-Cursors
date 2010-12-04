@@ -92,6 +92,9 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 	RID_DEVICE_INFO deviceInfo;
 	UINT size;
 	RECT r;
+	char *data;
+	RAWINPUT *input;
+	Point *point;
 
 	switch(message)
 	{
@@ -126,6 +129,44 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 		} // end if
 		InvalidateRect(window,NULL,TRUE);
 		return 0;
+	case WM_INPUT:
+		GetRawInputData((HRAWINPUT)argL,RID_INPUT,NULL,&size,sizeof(RAWINPUTHEADER));
+		data = new char[size];
+		GetRawInputData((HRAWINPUT)argL,RID_INPUT,data,&size,sizeof(RAWINPUTHEADER));
+		input = (RAWINPUT*)data;	// ...
+		if(input->header.dwType == RIM_TYPEMOUSE)
+		{
+			size = sizeof(deviceInfo);
+			GetRawInputDeviceInfo(input->header.hDevice,RIDI_DEVICEINFO,&deviceInfo,&size);
+			point = &cursorPositions[deviceInfo.mouse.dwId];
+			if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_ABSOLUTE)
+			{
+				point->x = input->data.mouse.lLastX;
+				point->y = input->data.mouse.lLastY;
+			} // end if
+			if((input->data.mouse.usFlags & 0x1) == MOUSE_MOVE_RELATIVE)
+			{
+				point->x += input->data.mouse.lLastX;
+				point->y += input->data.mouse.lLastY;
+			} // end if
+			GetClientRect(window,&r);
+			if(point->x < r.left)
+				point->x = r.left;
+			if(point->x > r.right)
+				point->x = r.right;
+			if(point->y < r.top)
+				point->y = r.top;
+			if(point->y > r.bottom)
+				point->y = r.bottom;
+			clog << "input from mouse with ID = " << deviceInfo.mouse.dwId << " position = " 
+				<< input->data.mouse.lLastX << ',' << input->data.mouse.lLastY << " flags = 0x" 
+				<< std::hex << input->data.mouse.usFlags << std::dec << endl;
+		}
+		else
+			clog << "input is not comming from a mouse!" << endl;
+		delete[] data;
+		InvalidateRect(window,NULL,TRUE);
+		return 0;
 	case WM_PAINT:
 		{
 		dc = BeginPaint(window,&ps);
@@ -135,6 +176,14 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM argW,LPARAM arg
 		auto end = cursorPositions.end();
 		while(begin != end)
 		{
+			auto begin2 = begin;
+			++begin2;
+			while(begin2 != end)
+			{
+				MoveToEx(dc,begin->second.x,begin->second.y,NULL);
+				LineTo(dc,begin2->second.x,begin2->second.y);
+				begin2++;
+			} // end while
 			Rectangle(dc,begin->second.x,begin->second.y,begin->second.x+20,begin->second.y+20);
 			++begin;
 		} // end while
