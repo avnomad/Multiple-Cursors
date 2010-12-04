@@ -1,0 +1,8 @@
+syntax: regexp
+Debug/*
+Release/*
+ipch/*
+syntax: glob
+Multiple Cursors.opensdf
+Multiple Cursors.sdf
+Multiple Cursors.suo

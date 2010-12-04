@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Multiple Cursors", "Multiple Cursors\Multiple Cursors.vcxproj", "{EB668B26-1A43-4203-8CBF-B95151B9C299}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB668B26-1A43-4203-8CBF-B95151B9C299}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EB668B26-1A43-4203-8CBF-B95151B9C299}.Debug|Win32.Build.0 = Debug|Win32
+		{EB668B26-1A43-4203-8CBF-B95151B9C299}.Release|Win32.ActiveCfg = Release|Win32
+		{EB668B26-1A43-4203-8CBF-B95151B9C299}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
